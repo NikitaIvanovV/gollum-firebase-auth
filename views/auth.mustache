@@ -1,0 +1,71 @@
+<script src="https://www.gstatic.com/firebasejs/7.4.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.4.0/firebase-auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script type="text/javascript">
+  var GollumAuth = {};
+  GollumAuth.config = {{{config}}};
+
+  firebase.initializeApp(GollumAuth.config);
+  GollumAuth.auth = firebase.auth;
+
+
+  firebase.auth().onAuthStateChanged(function (user) {
+      if (user) {
+          // The user is logged in!
+      } else {
+          // No user is signed in.
+      }
+  });
+
+  GollumAuth.logout = function logout() {
+      return GollumAuth.auth().signOut();
+  }
+
+  function login(email, pw) {
+      return GollumAuth.auth().signInWithEmailAndPassword(email, pw);
+  }
+
+  function resetPassword(email) {
+      return GollumAuth.auth().sendPasswordResetEmail(email);
+  }
+
+  function authRequest() {
+      return GollumAuth.auth().currentUser.getIdToken();
+  }
+
+  const AuthState = Object.freeze({
+      PENDING: Symbol("pending"),
+      AUTHORIZED: Symbol("authorized"),
+      NOT_AUTHORIZED: Symbol("not_authorized")
+  });
+
+  function addAuthHeader(config, tokenId) {
+      if (!("headers" in config)) {
+          config["headers"] = {};
+      }
+      config["headers"]["Authorization"] = tokenId;
+  }
+
+  GollumAuth.get = function get(url, config = {}) {
+      return authRequest().then(tokenId => {
+          addAuthHeader(config, tokenId);
+          return axios.get(url, config);
+      });
+  }
+
+  GollumAuth.post = function post(url, data, config = {}) {
+      return authRequest().then(tokenId => {
+          addAuthHeader(config, tokenId);
+          return axios.post(url, data, config);
+      });
+  }
+
+  firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+    .then(() => {
+      this.unregisterAuthObserver = firebase.auth().onAuthStateChanged(
+        // (user) => this.setState({isSignedIn: !!user})
+        (user) => {
+          if (!user) { return }
+        });
+    })
+</script>
