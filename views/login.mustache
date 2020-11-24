@@ -4,10 +4,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Gollum Login</title>
-  <!-- *******************************************************************************************
-       * TODO(DEVELOPER): Paste the initialization snippet from:
-       * Firebase Console > Overview > Add Firebase to your web app. *
-       ***************************************************************************************** -->
   <script src="https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.js"></script>
   {{{auth_js}}}
   <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.css"/>
@@ -30,15 +26,34 @@
 
     const hostUrl = getBaseUrl(window.location.href);
 
-    function postIdToken(idToken, csrfToken) {
+    function exchangeIdTokenToCookie(idToken, csrfToken) {
       return axios.post(hostUrl + '/gollum/session_login', {
         'idToken': idToken,
         'csrfToken': csrfToken
       },
       {
         headers: {'Content-Type': 'application/json'}
-      }).then(response => {
-        window.location.reload();
+      });
+    }
+
+    function activateLoginUI(container, uiConfig) {
+      // Initialize the FirebaseUI Widget using Firebase.
+      var ui = new firebaseui.auth.AuthUI(firebase.auth());
+      // The start method will wait until the DOM is loaded.
+      ui.start(container, uiConfig);
+    }
+
+    function getSessionCookieAndGetPage(user) {
+      // Get the user's ID token as it is needed to exchange for a session cookie.
+      user.getIdToken().then((idToken) => {
+        // Session login endpoint is queried and the session cookie is set.
+        // CSRF protection should be taken into account.
+        // ...
+        var csrfToken = Cookies.get('csrfToken');
+        exchangeIdTokenToCookie(idToken, csrfToken).then((response) => {
+          console.log(response);
+          window.location.reload();
+        });
       });
     }
 
@@ -47,41 +62,26 @@
     // FirebaseUI config.
     var uiConfig = {
       credentialHelper: firebaseui.auth.CredentialHelper.NONE,
-      signInSuccessUrl: undefined, //window.location.href,
+      // This setting is not used because redirect happens before cookie is set
+      signInSuccessUrl: undefined,
       signInOptions: [
-        // Leave the lines as is for the providers you want to offer your users.
         firebase.auth.EmailAuthProvider.PROVIDER_ID,
-      ],
-      callbacks: {
-        signInSuccessWithAuthResult: function(authResult, redirectUrl) {
-          var user = authResult.user;
-          // Get the user's ID token as it is needed to exchange for a session cookie.
-          return user.getIdToken().then(idToken => {
-            // Session login endpoint is queried and the session cookie is set.
-            // CSRF protection should be taken into account.
-            // ...
-            var csrfToken = Cookies.get('csrfToken');
-            return postIdToken(idToken, csrfToken);
-          });
-        }
-      },
-      // tosUrl and privacyPolicyUrl accept either url string or a callback
-      // function.
-      // Terms of service url/callback.
-      tosUrl: '<your-tos-url>',
-      // Privacy policy url/callback.
-      privacyPolicyUrl: function () {
-        window.location.assign('<your-privacy-policy-url>');
-      }
+      ]
     };
 
-    // As httpOnly cookies are to be used, do not persist any state client side.
-    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
-
-    // Initialize the FirebaseUI Widget using Firebase.
-    var ui = new firebaseui.auth.AuthUI(firebase.auth());
-    // The start method will wait until the DOM is loaded.
-    ui.start('#firebaseui-auth-container', uiConfig);
+    var uiActivated = false;
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(() => {
+      this.unregisterAuthObserver = firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          getSessionCookieAndGetPage(user);
+        } else if (! uiActivated) {
+          activateLoginUI('#firebaseui-auth-container', uiConfig);
+          uiActivated = true;
+        } else {
+          console.error("Failed to login");
+        }
+      });
+    });
   </script>
 </head>
 

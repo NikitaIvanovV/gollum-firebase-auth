@@ -59,13 +59,4 @@
           return axios.post(url, data, config);
       });
   }
-
-  firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-    .then(() => {
-      this.unregisterAuthObserver = firebase.auth().onAuthStateChanged(
-        // (user) => this.setState({isSignedIn: !!user})
-        (user) => {
-          if (!user) { return }
-        });
-    })
 </script>
