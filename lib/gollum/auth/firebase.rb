@@ -19,8 +19,6 @@ module Gollum::Auth
 
         @private_key = OpenSSL::PKey::RSA.generate 2048
         @public_key = @private_key.public_key
-
-        @base_url = "#{ID_TOOLKIT_URL}/projects/#{@firebase_project_id}"
       end
 
       def decode_id_token(id_token)
