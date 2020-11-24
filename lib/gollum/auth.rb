@@ -20,14 +20,13 @@ module Gollum
         @app = app
         @firebase = Firebase::Firebase.new(firebase_project_id)
         @firebase_config = firebase_config
-        @opts = { allow_unauthenticated_readonly: false }.merge(opts)
+        @opts = { allow_unauthenticated_readonly: false, base_path: '/' }.merge(opts)
+        @opts[:base_path] =  '/' + @opts[:base_path]
       end
 
       def call(env)
         request = Request.new(env)
         path_info = request.path_info
-
-        p path_info
 
         if path_info == "/gollum/session_login"
           return session_login(request)
@@ -69,22 +68,23 @@ module Gollum
 
       def session_login(request)
         id_token = request.data['idToken']
-        expires_in = 5*24*60*60  # 5 days
+        expires_in = 14*24*60*60  # session cookie will expire in 2 weeks
         begin
           # Create the session cookie. This will also verify the ID token in the process.
           # The session cookie will have the same claims as the ID token.
           session_cookie = @firebase.create_session_cookie(id_token, expires_in)
-          response = Rack::Response.new 'OK', 200, {}
-          # Set cookie policy for session cookie.
-          expires = Time.now + expires_in
-          response.set_cookie('session', {
-            :value => session_cookie.to_json, :expires => expires,
-            :httponly => true, :secure => false, :path => "/gollum"
-          })
-          response.finish
         rescue Firebase::Error, JWT::EncodeError, JWT::DecodeError
-          Response::error(401, 'Failed to authorize')
+          return Response::error(401, 'Failed to authorize')
         end
+
+        response = Rack::Response.new 'OK', 200, {}
+        # Set cookie policy for session cookie.
+        expires = Time.now + expires_in
+        response.set_cookie('session', {
+          :value => session_cookie.to_json, :expires => expires,
+          :httponly => true, :secure => false, :path => @opts[:base_path]
+        })
+        response.finish
       end
 
       def not_authorized
