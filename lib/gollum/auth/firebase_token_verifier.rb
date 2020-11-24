@@ -52,8 +52,8 @@ module Gollum::Auth
         return true
       end
 
-      def self.get_key_id
-        valid_public_keys = IDTokenVerifier.retrieve_and_cache_jwt_valid_public_keys
+      def get_key_id
+        valid_public_keys = retrieve_and_cache_jwt_valid_public_keys
         valid_public_keys.keys.sample
       end
 
@@ -62,15 +62,15 @@ module Gollum::Auth
         payload = { :exp => Time.now.getutc.to_i+60*60, :iat => Time.now.getutc.to_i-60*60,
                     :aud => @firebase_project_id, :iss => 'https://session.firebase.google.com/'+@firebase_project_id,
                     :sub => "325230123348"}
-        headers = {:alg => JWT_ALGORITHM, :kid => IDTokenVerifier.get_key_id}
+        headers = {:alg => JWT_ALGORITHM, :kid => get_key_id}
 
         encode(headers, payload, rsa_private)
       end
 
       def encode(headers, payload, rsa_private)
-        valid_public_keys = IDTokenVerifier.retrieve_and_cache_jwt_valid_public_keys
+        valid_public_keys = retrieve_and_cache_jwt_valid_public_keys
         kid = valid_public_keys.keys.sample
-        headers['kid'] = IDTokenVerifier.get_key_id
+        headers['kid'] = get_key_id
         JWT.encode payload, rsa_private, JWT_ALGORITHM, headers
       end
 
@@ -95,7 +95,7 @@ module Gollum::Auth
           raise Error.new("Invalid access token 'alg' header (#{alg}). Must be '#{JWT_ALGORITHM}'.")
         end
 
-        valid_public_keys = IDTokenVerifier.retrieve_and_cache_jwt_valid_public_keys
+        valid_public_keys = retrieve_and_cache_jwt_valid_public_keys
         kid = headers['kid']
         unless valid_public_keys.keys.include?(kid)
           raise Error.new("Invalid access token 'kid' header, do not correspond to valid public keys.")
@@ -160,16 +160,14 @@ module Gollum::Auth
         return decoded_token, nil
       end
 
-      def self.retrieve_and_cache_jwt_valid_public_keys
+      def retrieve_and_cache_jwt_valid_public_keys
         # Get valid JWT public keys and save to cache
         #
         # Must correspond to one of the public keys listed at
         # https://www.googleapis.com/identitytoolkit/v3/relyingparty/publicKeys
 
-        # valid_public_keys = Rails.cache.read(VALID_JWT_PUBLIC_KEYS_RESPONSE_CACHE_KEY)
-        valid_public_keys = nil
+        valid_public_keys = cached_public_keys
         if valid_public_keys.nil?
-          # uri = URI("https://www.googleapis.com/identitytoolkit/v3/relyingparty/publicKeys")
           uri = URI(ID_TOKEN_CERT_URI)
           https = Net::HTTP.new(uri.host, uri.port)
           https.use_ssl = true
@@ -180,16 +178,30 @@ module Gollum::Auth
           end
           valid_public_keys = JSON.parse(response.body)
 
-          # Commented out to disable caching
+          cc = response["cache-control"] # format example: Cache-Control: public, max-age=24442, must-revalidate, no-transform
+          max_age = cc[/max-age=(\d+?),/m, 1] # get something between 'max-age=' and ','
 
-          # cc = response["cache-control"] # format example: Cache-Control: public, max-age=24442, must-revalidate, no-transform
-          # max_age = cc[/max-age=(\d+?),/m, 1] # get something between 'max-age=' and ','
-          #
-          # Rails.cache.write(VALID_JWT_PUBLIC_KEYS_RESPONSE_CACHE_KEY, valid_public_keys, :expires_in => max_age.to_i)
+          cache_public_keys(valid_public_keys, max_age.to_i)
         end
 
-        valid_public_keys
+        return valid_public_keys
 
+      end
+
+      private
+
+      def cached_public_keys
+        return nil if @cached_public_keys.nil?
+
+        # Return nothing if keys are expired
+        return nil if Time.now > @cached_public_keys_expire_at
+
+        @cached_public_keys
+      end
+
+      def cache_public_keys(keys, expire_in)
+        @cached_public_keys = keys
+        @cached_public_keys_expire_at = Time.now + expire_in
       end
 
     end
