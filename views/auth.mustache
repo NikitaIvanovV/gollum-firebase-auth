@@ -6,16 +6,8 @@
   GollumAuth.config = {{{config}}};
 
   firebase.initializeApp(GollumAuth.config);
+
   GollumAuth.auth = firebase.auth;
-
-
-  firebase.auth().onAuthStateChanged(function (user) {
-      if (user) {
-          // The user is logged in!
-      } else {
-          // No user is signed in.
-      }
-  });
 
   GollumAuth.logout = function logout() {
       return GollumAuth.auth().signOut();
