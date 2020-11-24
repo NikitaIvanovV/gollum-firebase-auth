@@ -43,9 +43,7 @@ module Gollum
             decoded_claims = nil
           end
 
-          if decoded_claims.nil?
-            return login
-          end
+          return login if decoded_claims.nil?
 
           user = get_user_from_claims(decoded_claims)
           request.store_author_in_session(user)
@@ -61,8 +59,8 @@ module Gollum
         format % @opts[:base_path]
       end
 
-      def get_user_from_claims(cookie)
-        headers = cookie[0]
+      def get_user_from_claims(claims)
+        headers = claims[0]
         User.new(headers['sub'], headers['email'])
       end
 
