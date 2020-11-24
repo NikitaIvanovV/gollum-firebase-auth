@@ -21,15 +21,13 @@ module Gollum
         @firebase = Firebase::Firebase.new(firebase_config[:projectId])
         @firebase_config = firebase_config
 
-        @opts = { allow_unauthenticated_readonly: false, base_path: '/' }.merge(opts)
-        @opts[:base_path] =  '/' + @opts[:base_path]
+        @opts = { allow_unauthenticated_readonly: false }.merge(opts)
       end
 
       def call(env)
-        request = Request.new(env)
-        path_info = request.path_info
+        request = Request.new(env, base_path('/%s'))
 
-        if path_info == "/gollum/session_login"
+        if request.wiki_path == '/gollum/session_login'
           return session_login(request)
         end
 
@@ -58,6 +56,11 @@ module Gollum
 
       private
 
+      def base_path(format='%s')
+        return '' if ! @opts[:base_path]
+        format % @opts[:base_path]
+      end
+
       def get_user_from_claims(cookie)
         headers = cookie[0]
         User.new(headers['sub'], headers['email'])
@@ -82,8 +85,8 @@ module Gollum
         # Set cookie policy for session cookie.
         expires = Time.now + expires_in
         response.set_cookie('session', {
-          :value => session_cookie.to_json, :expires => expires,
-          :httponly => true, :secure => false, :path => @opts[:base_path]
+          :value => session_cookie, :expires => expires,
+          :httponly => true, :secure => false, :path => '/' + base_path
         })
         response.finish
       end
