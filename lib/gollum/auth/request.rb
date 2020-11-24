@@ -31,11 +31,7 @@ module Gollum::Auth
     end
 
     def session_cookie
-      cookie_string = cookies["session"]
-      if cookie_string.nil?
-        return nil
-      end
-      JSON.parse(cookie_string)
+      cookies["session"]
     end
 
     def wiki_path

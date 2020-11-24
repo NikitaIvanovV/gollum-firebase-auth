@@ -85,7 +85,7 @@ module Gollum
         # Set cookie policy for session cookie.
         expires = Time.now + expires_in
         response.set_cookie('session', {
-          :value => session_cookie.to_json, :expires => expires,
+          :value => session_cookie, :expires => expires,
           :httponly => true, :secure => false, :path => '/' + base_path
         })
         response.finish
