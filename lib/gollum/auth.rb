@@ -16,10 +16,11 @@ module Gollum
 
     class App
 
-      def initialize(app, firebase_project_id, firebase_config, opts = { })
+      def initialize(app, firebase_config, opts = { })
         @app = app
-        @firebase = Firebase::Firebase.new(firebase_project_id)
+        @firebase = Firebase::Firebase.new(firebase_config[:projectId])
         @firebase_config = firebase_config
+
         @opts = { allow_unauthenticated_readonly: false, base_path: '/' }.merge(opts)
         @opts[:base_path] =  '/' + @opts[:base_path]
       end
