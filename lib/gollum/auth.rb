@@ -1,6 +1,5 @@
 require 'jwt'
 require 'time'
-require 'digest'
 require 'rack'
 require 'gollum/auth/version'
 require 'gollum/auth/request'
