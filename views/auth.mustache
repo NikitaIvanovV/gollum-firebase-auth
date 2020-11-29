@@ -1,6 +1,7 @@
 <script src="https://www.gstatic.com/firebasejs/7.4.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/7.4.0/firebase-auth.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
 <script type="text/javascript">
   var GollumAuth = {};
   GollumAuth.config = {{{config}}};
@@ -51,4 +52,83 @@
           return axios.post(url, data, config);
       });
   }
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.js"></script>
+<link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.css"/>
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@rc/dist/js.cookie.min.js"></script>
+
+<script type="text/javascript">
+  function getBaseUrl(url) {
+    sep = "/";
+    parts = url.split(sep);
+
+    i = parts.length;
+    while (i>=0){
+      if (parts[i] === "gollum") {
+        break;
+      }
+      i--;
+    }
+
+    return parts.slice(0, i).join(sep);
+  }
+
+  const hostUrl = getBaseUrl(window.location.href);
+
+  function exchangeIdTokenToCookie(idToken, csrfToken) {
+    return axios.post(hostUrl + '/gollum/session_login', {
+      'idToken': idToken,
+      'csrfToken': csrfToken
+    },
+    {
+      headers: {'Content-Type': 'application/json'}
+    });
+  }
+
+  function activateLoginUI(container, uiConfig) {
+    // Initialize the FirebaseUI Widget using Firebase.
+    var ui = new firebaseui.auth.AuthUI(firebase.auth());
+    // The start method will wait until the DOM is loaded.
+    ui.start(container, uiConfig);
+  }
+
+  function getSessionCookieAndGetPage(user) {
+    // Get the user's ID token as it is needed to exchange for a session cookie.
+    user.getIdToken().then((idToken) => {
+      // Session login endpoint is queried and the session cookie is set.
+      // CSRF protection should be taken into account.
+      // ...
+      var csrfToken = Cookies.get('csrfToken');
+      exchangeIdTokenToCookie(idToken, csrfToken).then((response) => {
+        window.location.reload();
+      });
+    });
+  }
+
+  var config = GollumAuth.config;
+
+  // FirebaseUI config.
+  var uiConfig = {
+    credentialHelper: firebaseui.auth.CredentialHelper.NONE,
+    // This setting is not used because redirect happens before cookie is set
+    signInSuccessUrl: undefined,
+    signInOptions: [
+      firebase.auth.EmailAuthProvider.PROVIDER_ID,
+    ]
+  };
+
+  var uiActivated = false;
+  firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(() => {
+    this.unregisterAuthObserver = firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        getSessionCookieAndGetPage(user);
+      } else if (! uiActivated) {
+        activateLoginUI('#firebaseui-auth-container', uiConfig);
+        uiActivated = true;
+      } else {
+        console.error("Failed to login");
+      }
+    });
+  });
 </script>

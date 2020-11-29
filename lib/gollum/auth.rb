@@ -93,7 +93,7 @@ module Gollum
       end
 
       def login
-        Response::login(@firebase_config)
+        Response::login(@firebase_config, @opts[:login_layout])
       end
 
       def auth

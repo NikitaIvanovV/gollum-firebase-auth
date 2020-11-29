@@ -39,11 +39,13 @@ module Gollum::Auth
         )
       end
 
-      def login(config)
-        # Get login.html
-        html = read_gem_file "views/login.mustache"
+      def login(config, mustache = nil)
+        if mustache.nil?
+          # Get login.html
+          mustache = read_gem_file "views/login.mustache"
+        end
 
-        page Mustache.render(html, auth_js: auth_js(config))
+        page Mustache.render(mustache, auth: auth_js(config))
       end
 
       private
