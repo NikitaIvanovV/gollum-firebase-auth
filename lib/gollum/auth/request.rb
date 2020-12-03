@@ -24,9 +24,7 @@ module Gollum::Auth
     end
 
     def data
-      if @data_string == ''
-        return {}
-      end
+      return {} if @data_string == ''
       JSON.parse(@data_string)
     end
 
@@ -35,9 +33,9 @@ module Gollum::Auth
     end
 
     def wiki_path
-      a = path_info.dup
-      a.slice! @base_path
-      return a
+      path = path_info.dup
+      path.slice! @base_path
+      return path
     end
 
     private

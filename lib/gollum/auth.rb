@@ -26,24 +26,27 @@ module Gollum
       def call(env)
         request = Request.new(env, base_path('/%s'))
 
-        if request.wiki_path == '/gollum/session_login'
-          return session_login(request)
-        end
+        # Login user
+        return session_login(request) if request.wiki_path == '/gollum/session_login'
 
-        if request.requires_authentication?(@opts[:allow_unauthenticated_readonly])
-          session_cookie = request.session_cookie
-          if session_cookie.nil?
-            return login
-          end
+        session_cookie = request.session_cookie
+        decoded_claims = nil
 
+        # Verify token and get claims
+        unless session_cookie.nil?
           begin
             decoded_claims = verify_session_cookie(session_cookie)
           rescue Firebase::Error, JWT::EncodeError, JWT::DecodeError
-            decoded_claims = nil
           end
+        end
 
-          return login if decoded_claims.nil?
+        # Restrict users to access page if unauthorized
+        if request.requires_authentication?(@opts[:allow_unauthenticated_readonly])
+          return login if session_cookie.nil? || decoded_claims.nil?
+        end
 
+        # Set commit author
+        unless decoded_claims.nil?
           user = get_user_from_claims(decoded_claims)
           request.store_author_in_session(user)
         end
