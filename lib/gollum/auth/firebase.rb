@@ -29,8 +29,8 @@ module Gollum::Auth
         @verifier.encode(headers, payload, private_key)
       end
 
-      def create_session_cookie(token_id, expires_in)
-        payload, headers = decode_id_token(token_id)
+      def create_session_cookie(claims, expires_in)
+        payload, headers = claims
         encode_claims(headers, payload.merge({ COOKIE_EXPIRES_IN => expires_in }), @private_key)
       end
 

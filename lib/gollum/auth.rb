@@ -76,7 +76,8 @@ module Gollum
         begin
           # Create the session cookie. This will also verify the ID token in the process.
           # The session cookie will have the same claims as the ID token.
-          session_cookie = @firebase.create_session_cookie(id_token, expires_in)
+          decoded_claims = @firebase.decode_id_token(id_token)
+          session_cookie = @firebase.create_session_cookie(decoded_claims, expires_in)
         rescue Firebase::Error, JWT::EncodeError, JWT::DecodeError
           return Response::error(401, 'Failed to authorize')
         end
@@ -88,6 +89,11 @@ module Gollum
           :value => session_cookie, :expires => expires,
           :httponly => true, :secure => false, :path => '/' + base_path
         })
+
+        # Save author info
+        user = get_user_from_claims(decoded_claims)
+        request.store_author_in_session(user)
+
         response.finish
       end
 
