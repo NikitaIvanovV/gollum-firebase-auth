@@ -9,10 +9,11 @@ module Gollum::Auth
       (create/|edit/|delete/|rename/|revert/|uploadFile$|upload_file$)
     }x
 
-    def initialize(env, base_path='')
+    def initialize(env, base_path = '', email_placeholder = nil)
       super(env)
       @data_string = @env['rack.input'].read
       @base_path = base_path
+      @email_placeholder = email_placeholder
     end
 
     def requires_authentication?(allow_unauthenticated_readonly)
@@ -20,7 +21,13 @@ module Gollum::Auth
     end
 
     def store_author_in_session(user)
-      session['gollum.author'] = { name: user.name, email: user.email }
+      if @email_placeholder.nil?
+        email = user.email
+      else
+        email = @email_placeholder
+      end
+
+      session['gollum.author'] = { name: user.name, email: email }
     end
 
     def data

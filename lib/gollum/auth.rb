@@ -24,7 +24,7 @@ module Gollum
       end
 
       def call(env)
-        request = Request.new(env, base_path('/%s'))
+        request = Request.new(env, base_path('/%s'), @opts[:email_placeholder])
 
         # Login user
         return session_login(request) if request.wiki_path == '/gollum/session_login'
