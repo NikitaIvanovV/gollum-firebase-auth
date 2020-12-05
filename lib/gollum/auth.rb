@@ -20,7 +20,10 @@ module Gollum
         @firebase = Firebase::Firebase.new(firebase_config[:projectId])
         @firebase_config = firebase_config
 
-        @opts = { allow_unauthenticated_readonly: false }.merge(opts)
+        @opts = {
+          allow_unauthenticated_readonly: false,
+          secure_cookie: false
+        }.merge(opts)
       end
 
       def call(env)
@@ -87,7 +90,7 @@ module Gollum
         expires = Time.now + expires_in
         response.set_cookie('session', {
           :value => session_cookie, :expires => expires,
-          :httponly => true, :secure => false, :path => '/' + base_path
+          :httponly => true, :secure => @opts[:secure_cookie], :path => '/' + base_path
         })
 
         # Save author info
