@@ -100,9 +100,16 @@
       // CSRF protection should be taken into account.
       // ...
       var csrfToken = Cookies.get('csrfToken');
-      exchangeIdTokenToCookie(idToken, csrfToken).then((response) => {
-        window.location.reload();
-      });
+      exchangeIdTokenToCookie(idToken, csrfToken).then(
+        (response) => {
+          window.location.reload();
+        },
+        (error) => {
+          if (error.response) {
+            alert(error.response.data);
+          }
+        }
+      );
     });
   }
 
@@ -112,7 +119,7 @@
   var uiConfig = {
     credentialHelper: firebaseui.auth.CredentialHelper.NONE,
     // This setting is not used because redirect happens before cookie is set
-    signInSuccessUrl: undefined,
+    signInSuccessUrl: false,
     signInOptions: [
       firebase.auth.EmailAuthProvider.PROVIDER_ID,
     ]

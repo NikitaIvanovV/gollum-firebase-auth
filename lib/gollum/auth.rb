@@ -43,15 +43,16 @@ module Gollum
           end
         end
 
-        # Restrict users to access page if unauthorized
-        if request.requires_authentication?(@opts[:allow_unauthenticated_readonly])
-          return login if session_cookie.nil? || decoded_claims.nil?
-        end
-
         # Set commit author
+        user = nil
         unless decoded_claims.nil?
           user = get_user_from_claims(decoded_claims)
           request.store_author_in_session(user)
+        end
+
+        # Restrict users to access page if unauthorized
+        if request.requires_authentication?(@opts[:allow_unauthenticated_readonly])
+          return login if session_cookie.nil? || decoded_claims.nil? || banned?(user)
         end
 
         @app.call(env)
@@ -82,8 +83,12 @@ module Gollum
           decoded_claims = @firebase.decode_id_token(id_token)
           session_cookie = @firebase.create_session_cookie(decoded_claims, expires_in)
         rescue Firebase::Error, JWT::EncodeError, JWT::DecodeError
-          return Response::error(401, 'Failed to authorize')
+          return not_authorized
         end
+
+        user = get_user_from_claims(decoded_claims)
+
+        return not_authorized if banned? user
 
         response = Rack::Response.new 'OK', 200, {}
         # Set cookie policy for session cookie.
@@ -94,14 +99,18 @@ module Gollum
         })
 
         # Save author info
-        user = get_user_from_claims(decoded_claims)
         request.store_author_in_session(user)
 
         response.finish
       end
 
+      def banned?(user)
+        return false if @opts[:check_ban_func].nil? || user.nil?
+        @opts[:check_ban_func].call(user.name)
+      end
+
       def not_authorized
-        Response::not_authorized
+        Response::error(401, 'Failed to authorize')
       end
 
       def login
