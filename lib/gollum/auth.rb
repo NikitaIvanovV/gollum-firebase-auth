@@ -52,8 +52,8 @@ module Gollum
 
         # Restrict users to access page if unauthorized
         if request.requires_authentication?(@opts[:allow_unauthenticated_readonly])
-          return permission_denied if protected_page?(request.edited_page)
-          return login if session_cookie.nil? || decoded_claims.nil? || banned?(user)
+          return permission_denied if protected_page?(request.edited_page) || banned?(user)
+          return login if session_cookie.nil? || decoded_claims.nil?
         end
 
         @app.call(env)
