@@ -5,8 +5,9 @@ module Gollum::Auth
 
     WRITE_PATH_RE = %r{
       ^/
-      (gollum/)? # This path prefix was introduced in Gollum 5
+      (?:gollum/)? # This path prefix was introduced in Gollum 5
       (create/|edit/|delete/|rename/|revert/|uploadFile$|upload_file$)
+      (.*)
     }x
 
     def initialize(env, base_path = '', email_placeholder = nil)
@@ -43,6 +44,11 @@ module Gollum::Auth
       path = path_info.dup
       path.slice! @base_path
       return path
+    end
+
+    def edited_page
+      match = wiki_path.match WRITE_PATH_RE
+      match[2]
     end
 
     private
