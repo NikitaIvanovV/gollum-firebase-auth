@@ -52,7 +52,8 @@ module Gollum
 
         # Restrict users to access page if unauthorized
         if request.requires_authentication?(@opts[:allow_unauthenticated_readonly])
-          return permission_denied if protected_page?(request.edited_page) || banned?(user)
+          protect_page = protected_page?(request.page) && !admin?(user) && !user.nil?
+          return permission_denied if protect_page || banned?(user)
           return login if session_cookie.nil? || decoded_claims.nil?
         end
 
@@ -106,13 +107,29 @@ module Gollum
       end
 
       def banned?(user)
-        return false if @opts[:is_banned_func].nil? || user.nil?
-        @opts[:is_banned_func].call(user.name)
+        banned = @opts[:banned]
+        return false if banned.nil? || user.nil?
+        in_provided_list?(banned, user.name)
+      end
+
+      def admin?(user)
+        admins = @opts[:admins]
+        return false if admins.nil? || user.nil?
+        in_provided_list?(admins, user.name)
       end
 
       def protected_page?(page_name)
-        return false if @opts[:is_protected_page_func].nil? || page_name.nil?
-        @opts[:is_protected_page_func].call(page_name)
+        protected = @opts[:protected_pages]
+        return false if protected.nil? || page_name.nil?
+        in_provided_list?(protected, page_name)
+      end
+
+      def in_provided_list?(list_or_method, element)
+        if list_or_method.is_a? Method
+          list_or_method.call element
+        else
+          list_or_method.include? element
+        end
       end
 
       def not_authorized

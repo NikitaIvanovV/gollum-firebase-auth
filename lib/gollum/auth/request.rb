@@ -5,8 +5,8 @@ module Gollum::Auth
 
     WRITE_PATH_RE = %r{
       ^/
-      (?:gollum/)? # This path prefix was introduced in Gollum 5
-      (create/|edit/|delete/|rename/|revert/|uploadFile$|upload_file$)
+      ((?:gollum/)? # This path prefix was introduced in Gollum 5
+      (?:create/|edit/|delete/|rename/|revert/|uploadFile$|upload_file$))?
       (.*)
     }x
 
@@ -46,8 +46,9 @@ module Gollum::Auth
       return path
     end
 
-    def edited_page
+    def page
       match = wiki_path.match WRITE_PATH_RE
+      return nil if match.nil?
       match[2]
     end
 
@@ -55,7 +56,9 @@ module Gollum::Auth
 
     # Returns true if path is a write path that would change the wiki.
     def is_write_path?
-      !!(wiki_path =~ WRITE_PATH_RE)
+      match = wiki_path.match WRITE_PATH_RE
+      return false if match.nil?
+      ! match[1].nil?
     end
 
   end
