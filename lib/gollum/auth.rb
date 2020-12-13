@@ -54,7 +54,14 @@ module Gollum
         if request.requires_authentication?(@opts[:allow_unauthenticated_readonly])
           protect_page = protected_page?(request.page) && !admin?(user) && !user.nil?
           return permission_denied if protect_page || banned?(user)
-          return login if session_cookie.nil? || decoded_claims.nil?
+
+          if session_cookie.nil? || decoded_claims.nil?
+            if request.post?
+              return permission_denied
+            else
+              return login
+            end
+          end
         end
 
         @app.call(env)
