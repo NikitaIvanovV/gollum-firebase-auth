@@ -67,8 +67,9 @@ module Gollum
 
           if session_cookie.nil? || decoded_claims.nil?
             if request.get?
+              path = base_path('/%s') + LOGIN_PATH
               response = Rack::Response.new
-              response.redirect("#{LOGIN_PATH}?page=#{CGI.escape request.url}", 302)
+              response.redirect("#{path}?page=#{CGI.escape request.url}", 302)
               return response.finish
             else
               return permission_denied
