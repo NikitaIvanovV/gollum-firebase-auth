@@ -77,7 +77,7 @@
   const hostUrl = getBaseUrl(window.location.href);
 
   function exchangeIdTokenToCookie(idToken, csrfToken) {
-    return axios.post(hostUrl + '/gollum/session_login', {
+    return axios.post(hostUrl + "{{{login_path}}}", {
       'idToken': idToken,
       'csrfToken': csrfToken
     },
@@ -102,7 +102,7 @@
       var csrfToken = Cookies.get('csrfToken');
       exchangeIdTokenToCookie(idToken, csrfToken).then(
         (response) => {
-          window.location.reload();
+          window.location.href = "{{{page}}}";
         },
         (error) => {
           if (error.response) {

@@ -9,6 +9,8 @@ require 'gollum/auth/firebase'
 
 module Gollum
   module Auth
+    LOGIN_PATH = '/gollum/login'
+
     def self.new(*args)
       App.new(*args)
     end
@@ -30,7 +32,15 @@ module Gollum
         request = Request.new(env, base_path('/%s'), @opts[:email_placeholder])
 
         # Login user
-        return session_login(request) if request.wiki_path == '/gollum/session_login'
+        if request.wiki_path == LOGIN_PATH
+          if request.get?
+            return login request
+          elsif request.post?
+            return session_login request
+          else
+            return server_error
+          end
+        end
 
         session_cookie = request.session_cookie
         decoded_claims = nil
@@ -56,10 +66,12 @@ module Gollum
           return permission_denied if protect_page || banned?(user)
 
           if session_cookie.nil? || decoded_claims.nil?
-            if request.post?
-              return permission_denied
+            if request.get?
+              response = Rack::Response.new
+              response.redirect("#{LOGIN_PATH}?page=#{CGI.escape request.url}", 302)
+              return response.finish
             else
-              return login
+              return permission_denied
             end
           end
         end
@@ -99,7 +111,8 @@ module Gollum
 
         return not_authorized if banned? user
 
-        response = Rack::Response.new 'OK', 200, {}
+        response = Rack::Response.new
+
         # Set cookie policy for session cookie.
         expires = Time.now + expires_in
         response.set_cookie('session', {
@@ -147,8 +160,8 @@ module Gollum
         Response::error(403, 'Forbidden')
       end
 
-      def login
-        Response::login(@firebase_config, @opts[:login_layout])
+      def login request
+        Response::login(@firebase_config, request, @opts[:login_layout])
       end
 
       def auth
@@ -157,6 +170,10 @@ module Gollum
 
       def success
         Response::success
+      end
+
+      def server_error
+        Response::server_error
       end
 
     end

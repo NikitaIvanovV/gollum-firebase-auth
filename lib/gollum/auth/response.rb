@@ -18,6 +18,10 @@ module Gollum::Auth
         basic(code, {}, [message])
       end
 
+      def server_error
+        error(500, "Internal Server Error")
+      end
+
       def page(content)
         basic(
           200,
@@ -39,13 +43,14 @@ module Gollum::Auth
         )
       end
 
-      def login(config, mustache = nil)
+      def login(config, request, mustache = nil)
         if mustache.nil?
           # Get login.html
           mustache = read_gem_file "views/login.mustache"
         end
 
-        page Mustache.render(mustache, auth: auth_js(config))
+        page = request.params['page']
+        page Mustache.render(mustache, auth: auth_js(config, page))
       end
 
       private
@@ -64,9 +69,14 @@ module Gollum::Auth
         file.read
       end
 
-      def auth_js(config)
+      def auth_js(config, page)
         js = read_gem_file "views/auth.mustache"
-        Mustache.render(js, config: config.to_json)
+        Mustache.render(
+          js,
+          config: config.to_json,
+          login_path: ::Gollum::Auth::LOGIN_PATH,
+          page: page
+        )
       end
 
     end
