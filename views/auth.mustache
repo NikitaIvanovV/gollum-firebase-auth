@@ -75,6 +75,7 @@
   }
 
   const hostUrl = getBaseUrl(window.location.href);
+  const returnUrl = "{{{page}}}";
 
   function exchangeIdTokenToCookie(idToken, csrfToken) {
     return axios.post(hostUrl + "{{{login_path}}}", {
@@ -102,7 +103,7 @@
       var csrfToken = Cookies.get('csrfToken');
       exchangeIdTokenToCookie(idToken, csrfToken).then(
         (response) => {
-          window.location.href = "{{{page}}}";
+          window.location.href = (returnUrl) ? returnUrl : hostUrl;
         },
         (error) => {
           if (error.response) {
