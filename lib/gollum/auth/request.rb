@@ -3,10 +3,9 @@ require 'json'
 module Gollum::Auth
   class Request < Rack::Request
 
-    WRITE_PATH_RE = %r{
+    WIKI_URL_RE = %r{
       ^/
-      ((?:gollum/)? # This path prefix was introduced in Gollum 5
-      (?:create/|edit/|delete/|rename/|revert/|uploadFile$|upload_file$))?
+      (gollum/(?:create/|edit/|delete/|rename/|revert/|revert_commit/|upload_file$))?
       (.*)
     }x
 
@@ -22,12 +21,7 @@ module Gollum::Auth
     end
 
     def store_author_in_session(user)
-      if @email_placeholder.nil?
-        email = user.email
-      else
-        email = @email_placeholder
-      end
-
+      email = @email_placeholder.nil? ? user.email : @email_placeholder
       session['gollum.author'] = { name: user.name, email: email }
     end
 
@@ -47,7 +41,7 @@ module Gollum::Auth
     end
 
     def page
-      match = wiki_path.match WRITE_PATH_RE
+      match = wiki_path.match WIKI_URL_RE
       return nil if match.nil?
       match[2]
     end
@@ -56,7 +50,7 @@ module Gollum::Auth
 
     # Returns true if path is a write path that would change the wiki.
     def is_write_path?
-      match = wiki_path.match WRITE_PATH_RE
+      match = wiki_path.match WIKI_URL_RE
       return false if match.nil?
       ! match[1].nil?
     end
