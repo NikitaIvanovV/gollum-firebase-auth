@@ -5,7 +5,7 @@ module Gollum::Auth
 
     WIKI_URL_RE = %r{
       ^/
-      (gollum/(?:create/|edit/|delete/|rename/|revert/|revert_commit/|upload_file$))?
+      (gollum/(?:create|edit|delete|rename|revert|revert_commit|upload_file)/?)?
       (.*)
     }x
 
