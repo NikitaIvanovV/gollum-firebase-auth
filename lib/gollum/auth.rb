@@ -60,9 +60,12 @@ module Gollum
           request.store_author_in_session(user)
         end
 
+        is_admin = admin? user
+        request.session['fancade_wiki.is_admin'] = is_admin
+
         # Restrict users to access page if unauthorized
         if request.requires_authentication?(@opts[:allow_unauthenticated_readonly])
-          protect_page = protected_page?(request.page) && !admin?(user) && !user.nil?
+          protect_page = protected_page?(request.page) && !is_admin && !user.nil?
           return permission_denied if protect_page || banned?(user)
 
           if session_cookie.nil? || decoded_claims.nil?
